@@ -87,5 +87,5 @@ jobs:
           export GITHUB_REPOSITORY=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
           docker compose -f docker-compose.test.yml up -d
           sleep 30
-          curl -f http://localhost/health || exit 1
+          curl -f http://localhost/api/health || exit 1
           docker compose down
