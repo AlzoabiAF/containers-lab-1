@@ -79,7 +79,11 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Test the built images
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SHORT_SHA: ${{ github.sha }}
         run: |
+          export SHORT_SHA=${SHORT_SHA::7}
           docker compose -f docker-compose.test.yml up -d
           sleep 30
           curl -f http://localhost/health || exit 1
