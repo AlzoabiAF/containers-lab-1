@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: myapp_test
+    networks:
+      - test-network
+
+  app:
+    image: ghcr.io/${{ github.repository }}/app:sha-${{ github.sha }}
+    environment:
+      DB_HOST: postgres
+      DB_PASSWORD: secret
+      DB_NAME: myapp_test
+    depends_on:
+      - postgres
+    networks:
+      - test-network
+
+  nginx:
+    image: ghcr.io/${{ github.repository }}/nginx:sha-${{ github.sha }}
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - test-network
+
+networks:
+  test-network: {}
