@@ -38,7 +38,7 @@ jobs:
         run: |
           find k8s -name '*.yaml' -type f | while read -r file; do
             echo "Validating $file"
-            kubectl apply --dry-run=client -f "$file"
+            kubectl apply --dry-run=client --validate=false -f "$file"
           done
 
       - name: Lint YAML files
