@@ -1,0 +1,184 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: lab3-app
+  labels:
+    app: nginx
+    lab: lab3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: nginx-html
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+        - name: nginx-html
+          configMap:
+            name: nginx-html
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: lab3-app
+data:
+  nginx.conf: |
+    events {
+    worker_connections 1024;
+    }
+    http {
+    upstream backend {
+    server go-app:8081;
+    }
+    server {
+    listen 80;
+    location / {
+    root /usr/share/nginx/html;
+    index index.html;
+    }
+    location /api/ {
+    proxy_pass http://backend;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    }
+    location /health {
+    proxy_pass http://backend/api/health;
+    }
+    }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html
+  namespace: lab3-app
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <title>Production Kubernetes Cluster</title>
+    <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+    .container { max-width: 1000px; margin: auto; background: #16213e;
+    padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    h1 { color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom:
+    10px; }
+    h1 span { color: #e94560; }
+    .info-box { background: #0f3460; padding: 20px; border-radius: 10px;
+    margin: 20px 0; border-left: 5px solid #e94560; }
+    .node-list { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px
+    0; }
+    .node { background: #1a1a2e; padding: 15px; border-radius: 8px; flex:
+    1; min-width: 200px; border: 1px solid #e94560; }
+    .node h3 { margin-top: 0; color: #e94560; }
+    .badge { display: inline-block; padding: 5px 10px; background:
+    #e94560; color: white; border-radius: 20px; font-size: 12px; margin-right: 5px; }
+    pre { background: #1a1a2e; padding: 15px; border-radius: 8px;
+    overflow-x: auto; }
+    </style>
+    </head>
+    <body>
+    <div class="container">
+    <h1>🚀 <span>Production-Ready</span> Kubernetes Cluster</h1>
+    <div class="info-box">
+    <strong>Кластер развернут с помощью kubeadm на Debian 12</strong>
+    <p>Control Plane: k8s-master | Workers: k8s-worker1, k8s-
+    worker2</p>
+    <p>CNI: Calico | LoadBalancer: MetalLB | Ingress: NGINX Ingress
+    Controller</p>
+    </div>
+    <div class="node-list">
+    <div class="node">
+    <h3>📊 Информация о поде</h3>
+    <pre id="pod-info">Загрузка...</pre>
+    </div>
+    <div class="node">
+    <h3>📋 Статус кластера</h3>
+    <pre id="cluster-info">Загрузка...</pre>
+    </div>
+    </div>
+    <h2>👥 Пользователи из PostgreSQL</h2>
+    <div id="users-list"></div>
+    <script>
+    async function loadPodInfo() {
+    const response = await fetch('/api/health');
+    const data = await response.json();
+    document.getElementById('pod-info').textContent =
+    `Host: ${window.location.hostname}\n` +
+    `Status: ${data.status}\n` +
+    `Time: ${new Date().toLocaleString()}`;
+    }
+    async function loadClusterInfo() {
+    const nodes = ['k8s-master', 'k8s-worker1', 'k8s-worker2'];
+    document.getElementById('cluster-info').textContent =
+    `Узлы в кластере:\n` +
+    ` • k8s-master (control-plane)\n` +
+    ` • k8s-worker1 (worker)\n` +
+    ` • k8s-worker2 (worker)\n` +
+    `Текущий под: ${window.location.hostname}`;
+    }
+    async function loadUsers() {
+    try {
+    const response = await fetch('/api/users');
+    const users = await response.json();
+    const list = document.getElementById('users-list');
+    if (users.length > 0) {
+    let html = '<ul style="list-style-type: none; padding:
+    0;">';
+    users.forEach(user => {
+    html += `<li style="padding: 8px; margin: 5px 0;
+    background: #0f3460; border-radius: 5px;">👤 ${user.name} (ID: ${user.id})</li>`;
+    });
+    html += '</ul>';
+    list.innerHTML = html;
+    } else {
+    list.innerHTML = '<p>Нет пользователей</p>';
+    }
+    } catch (error) {
+    document.getElementById('users-list').innerHTML = '<p
+    style="color: #e94560;">Ошибка загрузки пользователей</p>';
+    }
+    }
+    loadPodInfo();
+    loadClusterInfo();
+    loadUsers();
+    setInterval(loadPodInfo, 10000);
+    </script>
+    </div>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: lab3-app
+spec:
+  selector:
+    app: nginx
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
