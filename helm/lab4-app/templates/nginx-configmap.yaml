@@ -1,0 +1,75 @@
+{{- if .Values.nginx.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nginx-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+{{- include "lab4-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      upstream backend {
+        server {{ .Release.Name }}-goapp:{{ .Values.goapp.service.port }};
+      }
+      server {
+        listen 8090;
+        location / {
+          root /usr/share/nginx/html;
+          index index.html;
+        }
+        location /api/ {
+          proxy_pass http://backend;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+        }
+        location /health {
+          proxy_pass http://backend/health;
+        }
+      }
+    }
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Helm Deployment</title>
+      <style>
+        body { font-family: Arial; margin: 40px; background: #2c3e50; color:
+        #ecf0f1; }
+        .container { max-width: 800px; margin: auto; background: #34495e;
+        padding: 30px; border-radius: 10px; }
+        h1 { color: #3498db; }
+        .info { background: #2c3e50; padding: 15px; border-radius: 5px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🚀 Helm Deployment - Lab4</h1>
+        <p>Это приложение установлено с помощью Helm-чарта</p>
+        <div class="info" id="pod-info"></div>
+        <h2>Пользователи</h2>
+        <ul id="users"></ul>
+      </div>
+      <script>
+        async function loadData() {
+          const health = await fetch('/api/health').then(r => r.json());
+          document.getElementById('pod-info').innerHTML =
+          `Статус: ${health.status}<br>Время: ${new
+          Date().toLocaleString()}`;
+          const users = await fetch('/api/users').then(r => r.json());
+          const list = document.getElementById('users');
+          list.innerHTML = '';
+          users.forEach(u => {
+            list.innerHTML += `<li>${u.name}</li>`;
+          });
+        }
+        loadData();
+        setInterval(loadData, 5000);
+      </script>
+    </body>
+    </html>
+{{- end }}

@@ -1,0 +1,58 @@
+{{- if .Values.goapp.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-goapp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+{{- include "lab4-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: goapp
+spec:
+  replicas: {{ .Values.goapp.replicaCount }}
+  selector:
+    matchLabels:
+{{- include "lab4-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: goapp
+  template:
+    metadata:
+      labels:
+{{- include "lab4-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: goapp
+    spec:
+      {{- if .Values.goapp.image.pullSecrets }}
+      imagePullSecrets:
+{{- toYaml .Values.goapp.image.pullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: goapp
+          image: "{{ .Values.goapp.image.repository }}:{{ .Values.goapp.image.tag }}"
+          ports:
+            - containerPort: 8081
+          env:
+            - name: DB_HOST
+              value: {{ .Release.Name }}-postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: {{ .Values.postgresql.env.POSTGRES_USER }}
+            - name: DB_PASSWORD
+              value: {{ .Values.postgresql.env.POSTGRES_PASSWORD }}
+            - name: DB_NAME
+              value: {{ .Values.postgresql.env.POSTGRES_DB }}
+          resources:
+{{- toYaml .Values.goapp.resources | nindent 12 }}
+          {{- if .Values.goapp.probes.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          {{- end }}
+{{- end }}

@@ -1,0 +1,36 @@
+🎉 Приложение успешно установлено с помощью Helm!
+**Информация о релизе:**
+Имя релиза: {{ .Release.Name }}
+Namespace: {{ .Values.global.namespace }}
+Версия чарта: {{ .Chart.Version }}
+Версия приложения: {{ .Chart.AppVersion }}
+**Компоненты:**
+{{- if .Values.postgresql.enabled }}
+✅ PostgreSQL: {{ .Release.Name }}-postgres
+{{- end }}
+{{- if .Values.goapp.enabled }}
+✅ Go App: {{ .Release.Name }}-goapp
+{{- end }}
+{{- if .Values.nginx.enabled }}
+✅ Nginx: {{ .Release.Name }}-nginx
+{{- end }}
+{{- if .Values.ingress.enabled }}
+✅ Ingress: {{ .Release.Name }}-ingress (host: {{ .Values.ingress.host }})
+{{- end }}
+**Доступ к приложению:**
+{{- if .Values.ingress.enabled }}
+Откройте в браузере: http://{{ .Values.ingress.host }}
+{{- else if eq .Values.nginx.service.type "NodePort" }}
+Выполните: kubectl get svc -n {{ .Values.global.namespace }} {{ .Release.Name }}-nginx
+{{- end }}
+**Полезные команды:**
+# Проверка статуса
+helm status {{ .Release.Name }} -n {{ .Values.global.namespace }}
+# Просмотр логов
+kubectl logs -n {{ .Values.global.namespace }} -l app.kubernetes.io/instance={{
+.Release.Name }}
+# Обновление
+helm upgrade {{ .Release.Name }} ./lab4-app -n {{ .Values.global.namespace }}
+# Удаление
+helm uninstall {{ .Release.Name }} -n {{ .Values.global.namespace }}
+Спасибо за использование Helm! 🚀
