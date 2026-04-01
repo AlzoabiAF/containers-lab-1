@@ -1,0 +1,13 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-postgres-init
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "lab4-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+data:
+  init.sql: |
+{{- .Values.postgresql.initSql | nindent 6 }}
+{{- end }}

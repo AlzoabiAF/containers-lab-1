@@ -1,0 +1,18 @@
+{{- if .Values.goapp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-goapp
+  namespace: {{ .Values.global.namespace }}
+  labels:
+{{- include "lab4-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: goapp
+spec:
+  selector:
+{{- include "lab4-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: goapp
+  ports:
+    - port: {{ .Values.goapp.service.port }}
+      targetPort: 8081
+  type: {{ .Values.goapp.service.type }}
+{{- end }}

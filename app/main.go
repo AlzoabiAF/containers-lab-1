@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	_ "github.com/lib/pq"
 )
@@ -51,6 +53,7 @@ func main() {
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/api/users", usersHandler)
 	http.HandleFunc("/api/users/add", addUserHandler)
+	http.HandleFunc("/api/users/", userByIDHandler)
 	http.HandleFunc("/api/health", healthHandler)
 	port := getEnv("PORT", "8081")
 	log.Printf("Server starting on port %s", port)
@@ -59,6 +62,47 @@ func main() {
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "/static/index.html")
 }
+func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func userByIDHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	idStr := strings.TrimPrefix(strings.TrimSpace(r.URL.Path), "/api/users/")
+	if idStr == "" || strings.Contains(idStr, "/") {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+		return
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id < 1 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
+		return
+	}
+	res, err := db.Exec("DELETE FROM users WHERE id = $1", id)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+	if n == 0 {
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "user not found", "id": strconv.Itoa(id)})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"id":      id,
+		"message": "User deleted successfully",
+	})
+}
+
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT id, name FROM users ORDER BY id DESC")
 	if err != nil {

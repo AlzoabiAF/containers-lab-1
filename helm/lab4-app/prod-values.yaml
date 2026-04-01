@@ -1,0 +1,21 @@
+postgresql:
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+goapp:
+  replicaCount: 5
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 500m
+    limits:
+      memory: 256Mi
+      cpu: 1000m
+nginx:
+  replicaCount: 3

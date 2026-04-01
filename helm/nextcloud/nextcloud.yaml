@@ -1,0 +1,32 @@
+nextcloud:
+  host: nextcloud.k8s.local
+  username: admin
+  password: admin123
+  database:
+    type: pgsql
+    host: nextcloud-postgresql
+postgresql:
+  enabled: true
+  auth:
+    username: nextcloud
+    password: nextcloud123
+    database: nextcloud
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "local-path"
+      size: 10Gi
+persistence:
+  enabled: true
+  storageClass: "local-path"
+  size: 20Gi
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 1024m
+  hosts:
+    - host: nextcloud.k8s.local
+      paths:
+        - path: /
+          pathType: Prefix
