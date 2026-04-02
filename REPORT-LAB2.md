@@ -52,11 +52,7 @@ postgres-service   ClusterIP   10.97.127.28     <none>        5432/TCP       2d1
 ```
 ### 3. Скриншоты работы приложения
 #### 3.1 Главная страница
-![Главная страница](screenshots-lab2/main-page.png)
-#### 3.2 Дашборд Kubernetes
-![Kubernetes Dashboard](screenshots-lab2/dashboard.png)
-#### 3.3 Результат GET /api/users
-![API Response](screenshots-lab2/api-response.png)
+![Главная страница](screenshots/2/13.png)
 ### 4. Эксперименты с масштабированием
 #### 4.1 Масштабирование до 5 реплик
 \`\`\`
